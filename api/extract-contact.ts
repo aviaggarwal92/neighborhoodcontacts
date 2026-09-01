@@ -48,7 +48,8 @@ async function createDirectMessage(payload: Anthropic.MessageCreateParamsNonStre
   });
 
   if (!response.ok) {
-    throw new Error(`Anthropic API request failed with status ${response.status}`);
+    const errorBody = await response.text();
+    throw new Error(`Anthropic API request failed with status ${response.status}: ${errorBody}`);
   }
 
   return await response.json() as Anthropic.Message;
