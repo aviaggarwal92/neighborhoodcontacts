@@ -667,11 +667,21 @@
     return best;
   }
 
+  function cleanLine(line) {
+    return line.replace(/^[\s\-–—•*·>|]+/, "").replace(/[\s\-–—•*·>|]+$/, "").trim();
+  }
+
+  function looksLikeAddressOrContact(line) {
+    return /\d/.test(line) || /@|www\.|http|\.(com|org|net)\b/i.test(line)
+      || /\b(street|st|ave|avenue|rd|road|blvd|suite|ste|floor|fl)\b/i.test(line);
+  }
+
   function guessName(text, phone) {
     const phoneDigits = phone ? phone.replace(/\D/g, "") : "";
-    const lines = text.split(/\r?\n/).map((line) => line.trim());
+    const rawLines = text.split(/\r?\n/).map((line) => cleanLine(line));
 
-    for (const line of lines) {
+    const candidates = [];
+    for (const line of rawLines) {
       if (!line) continue;
       const alnumCount = (line.match(/[a-zA-Z0-9]/g) || []).length;
       if (alnumCount < 2) continue;
@@ -679,9 +689,26 @@
       const lineDigits = line.replace(/\D/g, "");
       if (phoneDigits && lineDigits === phoneDigits) continue;
       if (!/[a-zA-Z]{2,}/.test(line)) continue;
-      return line;
+      candidates.push(line);
     }
-    return "";
+
+    if (candidates.length === 0) return "";
+
+    let name = candidates[0];
+
+    // If the first line is short (likely a first name only, or a split
+    // name) and the next line looks like more of a name rather than an
+    // address/contact detail, merge them.
+    if (
+      candidates.length > 1 &&
+      name.length <= 16 &&
+      !name.includes(" ") &&
+      !looksLikeAddressOrContact(candidates[1])
+    ) {
+      name = `${name} ${candidates[1]}`;
+    }
+
+    return cleanLine(name);
   }
 
   photoInput.addEventListener("change", () => handlePhotoFile(photoInput.files[0]));
