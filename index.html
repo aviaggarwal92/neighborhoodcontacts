@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#274a43" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Highland Lakes Directory</title>
+<meta name="description" content="Trusted local contacts for the Highland Lakes community — electricians, plumbers, and more." />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icons/app-icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <svg class="brand-mark" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M4 30 Q14 20 24 30 T44 30" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M4 36 Q14 26 24 36 T44 36" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+        <path d="M10 24 L20 8 L26 18 L32 6 L40 24 Z" fill="currentColor" opacity="0.9"/>
+      </svg>
+      <div>
+        <h1>Highland Lakes</h1>
+        <p class="tagline">Neighbor-to-neighbor contact book</p>
+      </div>
+    </div>
+    <p class="creator-credit">
+      <span>Created by</span>
+      <strong>Avichal Aggarwal</strong>
+    </p>
+  </header>
+
+  <div class="search-row">
+    <div class="search-field">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="searchInput" type="search" placeholder="Search a name, business, or number…" autocomplete="off" />
+    </div>
+  </div>
+
+  <nav class="chip-row" id="categoryChips" aria-label="Filter by category"></nav>
+
+  <main id="listWrap">
+    <div class="result-toolbar">
+      <div id="resultCount" class="result-count"></div>
+      <div class="result-actions">
+        <button id="openCategorySheet" class="category-add-btn" type="button">+ Category</button>
+        <a id="categoryShareButton" class="whatsapp-share whatsapp-share-category hidden" href="#" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 11.7a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.4-4.4A8.4 8.4 0 1 1 20.5 11.7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.2 7.8c.2-.5.5-.5.8-.5h.5c.2 0 .4.1.5.4l.8 1.9c.1.3 0 .5-.2.7l-.6.7c-.2.2-.1.4 0 .6.7 1.3 1.7 2.3 3 3 .2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1.1 2.1-.6.4-1.4.6-2.3.3-1.2-.3-2.8-1-4.4-2.4-1.8-1.6-3-3.6-3.3-4.8-.3-1.1 0-1.8.3-2.2.4-.4.8-.5 1.1-.5" fill="currentColor"/></svg>
+          <span id="categoryShareLabel">Share category</span>
+        </a>
+      </div>
+    </div>
+    <ul id="contactList" class="contact-list"></ul>
+    <div id="listStatus" class="list-status" role="status" aria-live="polite"></div>
+    <div id="loadMoreSentinel" class="load-more-wrap hidden">
+      <button id="loadMoreButton" class="load-more-btn" type="button">Load more contacts</button>
+    </div>
+    <div id="emptyState" class="empty-state hidden">
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="32" cy="24" r="12" stroke="currentColor" stroke-width="2.5"/><path d="M12 54c0-11 9-18 20-18s20 7 20 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <p>No contacts here yet.</p>
+      <span>Be the first neighbor to add one.</span>
+    </div>
+  </main>
+
+  <button id="fabAdd" class="fab" aria-label="Add a contact">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+  </button>
+
+</div>
+
+<!-- Add Contact Sheet -->
+<div id="addSheet" class="sheet-overlay hidden">
+  <button class="home-btn" type="button" data-go-home aria-label="Return to directory home">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Add a contact</h2>
+      <div class="sheet-header-actions">
+        <button class="icon-btn" id="closeAddSheet" aria-label="Close add contact">&times;</button>
+      </div>
+    </div>
+
+    <div class="tab-switch" role="tablist" aria-label="Contact entry method">
+      <button class="tab-btn active" type="button" data-add-tab="manual" role="tab" aria-selected="true">Enter manually</button>
+      <button class="tab-btn" type="button" data-add-tab="photo" role="tab" aria-selected="false">Use a photo</button>
+    </div>
+
+    <div id="tabManual" class="tab-panel active">
+      <form id="manualForm" class="form">
+        <p class="review-hint">Type the contact details you want neighbors to see.</p>
+        <label class="field">
+          <span>Name</span>
+          <input type="text" name="name" required />
+        </label>
+        <label class="field">
+          <span>Business name (optional)</span>
+          <input type="text" name="businessName" />
+        </label>
+        <label class="field">
+          <span>Pricing (optional)</span>
+          <textarea name="pricing" rows="3" maxlength="160" placeholder="List service prices, rates, or estimate policies"></textarea>
+          <small>Use a new line for each pricing option.</small>
+        </label>
+        <label class="field">
+          <span>Phone number</span>
+          <input type="tel" name="phone" inputmode="tel" pattern="[+]?[0-9() .-]*" maxlength="30" required />
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <select name="categorySlug" id="manualCategorySelect" data-category-select required></select>
+        </label>
+        <button type="button" class="inline-action" data-open-category="manualCategorySelect">+ Add a new category</button>
+        <label class="field">
+          <span>Notes (optional)</span>
+          <textarea name="notes" rows="2"></textarea>
+        </label>
+        <label class="field">
+          <span>Your name (optional)</span>
+          <input type="text" name="addedBy" />
+        </label>
+        <div id="manualError" class="form-error hidden"></div>
+        <div id="manualDuplicateCard" class="duplicate-card hidden"></div>
+        <button type="submit" class="btn-primary">Save contact</button>
+      </form>
+    </div>
+
+    <div id="tabPhoto" class="tab-panel">
+      <div class="photo-intake">
+        <div class="photo-drop" id="photoDrop">
+          <input type="file" id="photoInput" accept="image/*" hidden />
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="7" y="9" width="34" height="30" rx="4" stroke="currentColor" stroke-width="2.2"/><path d="m11 34 9-9 6 6 4-4 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="31.5" cy="18.5" r="3.5" stroke="currentColor" stroke-width="2.2"/></svg>
+          <span id="photoDropLabel">Upload a saved business card or flyer</span>
+          <span class="photo-drop-sub">Choose an existing photo and we'll read the contact details</span>
+          <div class="photo-drop-actions">
+            <button type="button" class="btn-secondary" id="photoChooseBtn">Choose saved photo</button>
+          </div>
+        </div>
+        <img id="photoPreview" class="photo-preview hidden" alt="Selected contact photo preview" />
+        <div id="photoStatus" class="photo-status hidden" role="status" aria-live="polite"></div>
+      </div>
+
+      <form id="photoForm" class="form hidden">
+        <p class="review-hint">Check what we read — edit anything before saving.</p>
+        <label class="field">
+          <span>Name</span>
+          <input type="text" name="name" required />
+        </label>
+        <label class="field">
+          <span>Business name (optional)</span>
+          <input type="text" name="businessName" />
+        </label>
+        <label class="field">
+          <span>Pricing (optional)</span>
+          <textarea name="pricing" rows="3" maxlength="160" placeholder="List service prices, rates, or estimate policies"></textarea>
+          <small>Check the extracted pricing and use a new line for each option.</small>
+        </label>
+        <label class="field">
+          <span>Phone number</span>
+          <input type="tel" name="phone" inputmode="tel" pattern="[+]?[0-9() .-]*" maxlength="30" required />
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <select name="categorySlug" id="photoCategorySelect" data-category-select required></select>
+        </label>
+        <button type="button" class="inline-action" data-open-category="photoCategorySelect">+ Add a new category</button>
+        <label class="field">
+          <span>Notes (optional)</span>
+          <textarea name="notes" rows="2"></textarea>
+        </label>
+        <label class="field">
+          <span>Your name (optional)</span>
+          <input type="text" name="addedBy" />
+        </label>
+        <div id="photoError" class="form-error hidden"></div>
+        <div id="photoDuplicateCard" class="duplicate-card hidden"></div>
+        <button type="submit" class="btn-primary">Save contact</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add Category Sheet -->
+<div id="categorySheet" class="sheet-overlay hidden">
+  <button class="home-btn" type="button" data-go-home aria-label="Return to directory home">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <div class="sheet sheet-compact">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <p class="sheet-kicker">Keep the directory organized</p>
+        <h2>Add a category</h2>
+      </div>
+      <div class="sheet-header-actions">
+        <button class="icon-btn" id="closeCategorySheet" aria-label="Close add category">&times;</button>
+      </div>
+    </div>
+    <form id="categoryForm" class="form">
+      <label class="field">
+        <span>Category name</span>
+        <input type="text" name="name" minlength="2" maxlength="60" placeholder="For example, Pool Service" required />
+      </label>
+      <p class="review-hint">Names are checked without regard to capitalization or extra spaces.</p>
+      <div id="categoryError" class="form-error hidden"></div>
+      <button type="submit" class="btn-primary">Add category</button>
+    </form>
+  </div>
+</div>
+
+<!-- Contact Detail Sheet -->
+<div id="detailSheet" class="sheet-overlay hidden">
+  <button class="home-btn" type="button" data-go-home aria-label="Return to directory home">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Home
+  </button>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="detailName">Contact</h2>
+      <div class="sheet-header-actions">
+        <button class="icon-btn" id="closeDetailSheet" aria-label="Close contact details">&times;</button>
+      </div>
+    </div>
+    <div id="detailBody" class="detail-body"></div>
+
+    <form id="pricingEditForm" class="pricing-edit-form hidden">
+      <label class="field">
+        <span>Update pricing</span>
+        <textarea name="pricing" rows="3" maxlength="160" placeholder="List service prices, rates, or estimate policies"></textarea>
+        <small>Use a new line for each option. Leave it blank to remove pricing.</small>
+      </label>
+      <div id="pricingEditError" class="form-error hidden"></div>
+      <div class="pricing-edit-actions">
+        <button type="button" class="btn-quiet" id="cancelPricingEdit">Cancel</button>
+        <button type="submit" class="btn-secondary">Save pricing</button>
+      </div>
+    </form>
+
+    <div class="review-section">
+      <h3>Reviews</h3>
+      <ul id="reviewList" class="review-list"></ul>
+      <form id="reviewForm" class="form">
+        <label class="field">
+          <span>Your name</span>
+          <input type="text" name="author" required />
+        </label>
+        <label class="field">
+          <span>Rating</span>
+          <div class="star-input" id="starInput" data-value="0">
+            <button type="button" data-star="1" aria-label="1 star">★</button>
+            <button type="button" data-star="2" aria-label="2 stars">★</button>
+            <button type="button" data-star="3" aria-label="3 stars">★</button>
+            <button type="button" data-star="4" aria-label="4 stars">★</button>
+            <button type="button" data-star="5" aria-label="5 stars">★</button>
+          </div>
+          <input type="hidden" name="rating" required />
+        </label>
+        <label class="field">
+          <span>Comment (optional)</span>
+          <textarea name="comment" rows="2" placeholder="How did it go?"></textarea>
+        </label>
+        <div id="reviewError" class="form-error hidden"></div>
+        <button type="submit" class="btn-secondary">Post review</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="/js/app.js" defer></script>
+</body>
+</html>
