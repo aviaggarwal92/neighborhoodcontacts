@@ -567,46 +567,68 @@
     }
 
     photoPreview.classList.add("hidden");
-    photoStatus.textContent = "Reading contact details…";
+    photoStatus.textContent = "Scanning photo for text…";
     photoStatus.classList.remove("hidden");
     photoStatus.classList.add("loading");
     photoStatus.classList.remove("error");
     photoForm.classList.add("hidden");
 
     try {
-      // Normalize to JPEG so formats like HEIC (common when picking from the
-      // photo library on iPhone) can always be read, previewed, and sent for OCR.
-      const { dataUrl, base64, mediaType } = await normalizeImageFile(file);
+      const { dataUrl } = await normalizeImageFile(file);
       photoPreview.src = dataUrl;
       photoPreview.classList.remove("hidden");
-      const res = await fetch("/api/extract-contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
+
+      const ocrText = await extractTextFromImage(dataUrl, (progress) => {
+        photoStatus.textContent = `Scanning photo for text… ${progress}%`;
       });
-      const data = await res.json().catch(() => ({}));
+
       photoStatus.classList.add("hidden");
       photoStatus.classList.remove("loading");
 
-      if (!res.ok) {
-        photoStatus.textContent = data.error || "Could not read that photo. Try a clearer, closely cropped image.";
-        photoStatus.classList.remove("hidden", "loading");
-        photoStatus.classList.add("error");
-        return;
-      }
+      const guessedPhone = guessPhoneNumber(ocrText);
 
-      photoForm.querySelector('[name="name"]').value = data.name || "";
-      photoForm.querySelector('[name="businessName"]').value = data.businessName || "";
-      photoForm.querySelector('[name="pricing"]').value = data.pricing || "";
-      photoForm.querySelector('[name="phone"]').value = sanitizePhone(data.phone);
-      photoForm.querySelector('[name="notes"]').value = data.notes || "";
-      photoForm.querySelector('[name="categorySlug"]').value = data.category || "other";
+      photoForm.querySelector('[name="name"]').value = "";
+      photoForm.querySelector('[name="businessName"]').value = "";
+      photoForm.querySelector('[name="pricing"]').value = "";
+      photoForm.querySelector('[name="phone"]').value = sanitizePhone(guessedPhone || "");
+      photoForm.querySelector('[name="notes"]').value = ocrText.trim();
+      photoForm.querySelector('[name="categorySlug"]').value = "other";
       photoForm.classList.remove("hidden");
+
+      if (!guessedPhone) {
+        photoStatus.textContent = "Couldn't find a phone number automatically. Check the scanned text below and fill in the details.";
+        photoStatus.classList.remove("hidden", "error");
+      }
     } catch (err) {
       photoStatus.textContent = err.message || "Something went wrong reading that photo. Try another saved image.";
       photoStatus.classList.remove("hidden", "loading");
       photoStatus.classList.add("error");
     }
+  }
+
+  function extractTextFromImage(dataUrl, onProgress) {
+    return Tesseract.recognize(dataUrl, "eng", {
+      logger: (info) => {
+        if (info.status === "recognizing text" && onProgress) {
+          onProgress(Math.round(info.progress * 100));
+        }
+      },
+    }).then((result) => result.data.text || "");
+  }
+
+  function guessPhoneNumber(text) {
+    const phoneRegex = /(\+?\d[\d\-.\s()]{6,}\d)/g;
+    const matches = text.match(phoneRegex) || [];
+    let best = "";
+    let bestDigitCount = 0;
+    matches.forEach((match) => {
+      const digits = match.replace(/\D/g, "");
+      if (digits.length >= 7 && digits.length <= 15 && digits.length > bestDigitCount) {
+        best = match.trim();
+        bestDigitCount = digits.length;
+      }
+    });
+    return best;
   }
 
   photoInput.addEventListener("change", () => handlePhotoFile(photoInput.files[0]));
