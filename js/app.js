@@ -607,14 +607,49 @@
     }
   }
 
-  function extractTextFromImage(dataUrl, onProgress) {
-    return Tesseract.recognize(dataUrl, "eng", {
-      logger: (info) => {
-        if (info.status === "recognizing text" && onProgress) {
-          onProgress(Math.round(info.progress * 100));
+    function extractTextFromImage(dataUrl, onProgress) {
+    return preprocessForOcr(dataUrl).then((processedDataUrl) =>
+      Tesseract.recognize(processedDataUrl, "eng", {
+        logger: (info) => {
+          if (info.status === "recognizing text" && onProgress) {
+            onProgress(Math.round(info.progress * 100));
+          }
+        },
+      })
+    ).then((result) => result.data.text || "");
+  }
+
+  function preprocessForOcr(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // Add padding so text near the image edges (often where the
+        // first letter gets clipped) has room to be fully recognized.
+        const padding = 24;
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width + padding * 2;
+        canvas.height = img.height + padding * 2;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, padding, padding);
+
+        // Grayscale + contrast boost improves OCR accuracy noticeably.
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const contrast = 1.35;
+        const intercept = 128 * (1 - contrast);
+        for (let i = 0; i < data.length; i += 4) {
+          const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          const adjusted = Math.min(255, Math.max(0, gray * contrast + intercept));
+          data[i] = data[i + 1] = data[i + 2] = adjusted;
         }
-      },
-    }).then((result) => result.data.text || "");
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
   }
 
   function guessPhoneNumber(text) {
