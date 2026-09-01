@@ -14,9 +14,9 @@
     "@neondatabase/serverless": "^1.1.0",
     "@netlify/database": "^1.1.0",
     "@netlify/functions": "^5.3.0",
-    "drizzle-orm": "^1.0.0-rc.5-ab785fc"
+    "drizzle-orm": "^0.36.4"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10"
+    "drizzle-kit": "^0.28.1"
   }
 }
