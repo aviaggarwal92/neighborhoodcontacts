@@ -676,7 +676,16 @@
       || /\b(street|st|ave|avenue|rd|road|blvd|suite|ste|floor|fl)\b/i.test(line);
   }
 
-  function guessName(text, phone) {
+  function cleanLine(line) {
+    return line.replace(/^[\s\-–—•*·>|~`'"^_=]+/, "").replace(/[\s\-–—•*·>|~`'"^_=]+$/, "").trim();
+  }
+
+  function looksLikeAddressOrContact(line) {
+    return /\d/.test(line) || /@|www\.|http|\.(com|org|net)\b/i.test(line)
+      || /\b(street|st|ave|avenue|rd|road|blvd|suite|ste|floor|fl)\b/i.test(line);
+  }
+
+  function guessNameAndBusiness(text, phone) {
     const phoneDigits = phone ? phone.replace(/\D/g, "") : "";
     const rawLines = text.split(/\r?\n/).map((line) => cleanLine(line));
 
@@ -692,13 +701,13 @@
       candidates.push(line);
     }
 
-    if (candidates.length === 0) return "";
+    if (candidates.length === 0) return { name: "", businessName: "" };
 
     let name = candidates[0];
+    let businessName = "";
 
-    // If the first line is short (likely a first name only, or a split
-    // name) and the next line looks like more of a name rather than an
-    // address/contact detail, merge them.
+    // If the first line is short and has no space, it's likely a
+    // first-name fragment split across lines — merge with the next line.
     if (
       candidates.length > 1 &&
       name.length <= 16 &&
@@ -706,9 +715,14 @@
       !looksLikeAddressOrContact(candidates[1])
     ) {
       name = `${name} ${candidates[1]}`;
+      businessName = candidates[2] && !looksLikeAddressOrContact(candidates[2]) ? candidates[2] : "";
+    } else if (candidates.length > 1 && !looksLikeAddressOrContact(candidates[1]) && candidates[1].length <= 60) {
+      // Otherwise, treat the next clean line as the business name rather
+      // than dropping it or awkwardly merging it into the name field.
+      businessName = candidates[1];
     }
 
-    return cleanLine(name);
+    return { name: cleanLine(name), businessName: cleanLine(businessName) };
   }
 
   photoInput.addEventListener("change", () => handlePhotoFile(photoInput.files[0]));
