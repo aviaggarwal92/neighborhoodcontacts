@@ -585,13 +585,14 @@
       photoStatus.classList.add("hidden");
       photoStatus.classList.remove("loading");
 
-      const guessedPhone = guessPhoneNumber(ocrText);
+            const guessedPhone = guessPhoneNumber(ocrText);
+      const { name, notes } = parseCardText(ocrText, guessedPhone);
 
-      photoForm.querySelector('[name="name"]').value = "";
+      photoForm.querySelector('[name="name"]').value = name;
       photoForm.querySelector('[name="businessName"]').value = "";
       photoForm.querySelector('[name="pricing"]').value = "";
       photoForm.querySelector('[name="phone"]').value = sanitizePhone(guessedPhone || "");
-      photoForm.querySelector('[name="notes"]').value = ocrText.trim();
+      photoForm.querySelector('[name="notes"]').value = notes;
       photoForm.querySelector('[name="categorySlug"]').value = "other";
       photoForm.classList.remove("hidden");
 
@@ -629,6 +630,29 @@
       }
     });
     return best;
+  }
+  
+    function parseCardText(text, phone) {
+    const phoneDigits = phone ? phone.replace(/\D/g, "") : "";
+    const rawLines = text.split(/\r?\n/).map((line) => line.trim());
+
+    const cleanLines = [];
+    rawLines.forEach((line) => {
+      if (!line) return;
+      const alnumCount = (line.match(/[a-zA-Z0-9]/g) || []).length;
+      if (alnumCount < 2) return; // drop pure symbol/garbage lines
+      if (alnumCount / line.length < 0.4) return; // drop mostly-garbled lines
+      const lineDigits = line.replace(/\D/g, "");
+      if (phoneDigits && lineDigits === phoneDigits) return; // drop the phone line itself
+      if (cleanLines[cleanLines.length - 1] === line) return; // drop exact duplicates
+      cleanLines.push(line);
+    });
+
+    const nameIndex = cleanLines.findIndex((line) => /[a-zA-Z]{2,}/.test(line));
+    const name = nameIndex !== -1 ? cleanLines[nameIndex] : "";
+    const notesLines = cleanLines.filter((_, i) => i !== nameIndex);
+
+    return { name, notes: notesLines.join("\n") };
   }
 
   photoInput.addEventListener("change", () => handlePhotoFile(photoInput.files[0]));
