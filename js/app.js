@@ -83,7 +83,7 @@
     return `${hasLeadingPlus ? "+" : ""}${phoneBody}`.slice(0, 30);
   }
 
-  function formatWhatsAppShareUrl(contact) {
+    function formatWhatsAppShareUrl(contact) {
     const lines = [
       "Highland Lakes contact",
       contact.name,
@@ -93,12 +93,13 @@
       contact.pricing ? `Pricing: ${contact.pricing}` : "",
       contact.notes ? `Notes: ${contact.notes}` : "",
       "Shared from Highland Lakes Directory",
+      window.location.origin,
     ].filter(Boolean);
 
     return `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
   }
 
-  function formatCategoryWhatsAppShareUrl(category, contacts) {
+    function formatCategoryWhatsAppShareUrl(category, contacts) {
     const contactLines = contacts.flatMap((contact, index) => [
       `${index + 1}. ${contact.name}${contact.businessName ? ` — ${contact.businessName}` : ""}`,
       `Phone: ${contact.phone}`,
@@ -112,6 +113,7 @@
       "",
       ...contactLines,
       "Shared from Highland Lakes Directory",
+      window.location.origin,
     ];
 
     return `https://wa.me/?text=${encodeURIComponent(lines.join("\n").trim())}`;
