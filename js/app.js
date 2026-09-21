@@ -202,18 +202,30 @@
     });
   }
 
-  function populateCategorySelects() {
+    function populateCategorySelects() {
     $$('[data-category-select]').forEach((select) => {
       const selectedValue = select.value;
       select.replaceChildren();
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Select a category";
+      placeholder.disabled = true;
+      select.appendChild(placeholder);
+
       state.categories.forEach((category) => {
         const option = document.createElement("option");
         option.value = category.slug;
         option.textContent = category.name;
         select.appendChild(option);
       });
+
+      select.required = true;
+
       if (state.categories.some((category) => category.slug === selectedValue)) {
         select.value = selectedValue;
+      } else {
+        select.value = "";
       }
     });
   }
@@ -593,7 +605,7 @@
       photoForm.querySelector('[name="pricing"]').value = "";
       photoForm.querySelector('[name="phone"]').value = sanitizePhone(guessedPhone || "");
       photoForm.querySelector('[name="notes"]').value = "";
-      photoForm.querySelector('[name="categorySlug"]').value = "other";
+      photoForm.querySelector('[name="categorySlug"]').value = "";
       photoForm.classList.remove("hidden");
 
       if (!guessedPhone) {
@@ -684,6 +696,9 @@
     for (const line of rawLines) {
       if (!line) continue;
       if (/\b\d{1,2}:\d{2}\b/.test(line)) continue; // skip clock/status-bar lines
+	  const labelOnly = line.toLowerCase().replace(/[^a-z]/g, "");
+      const uiLabels = new Set(["phone", "mobile", "cell", "email", "notes", "home", "work", "main", "fax", "pager", "url", "website", "contactphotoposter", "addtofavorites", "sharecontact", "addtoemergency"]);
+      if (uiLabels.has(labelOnly)) continue; // skip contact-app field labels
       const alnumCount = (line.match(/[a-zA-Z0-9]/g) || []).length;
       if (alnumCount < 2) continue;
       if (alnumCount / line.length < 0.4) continue;
