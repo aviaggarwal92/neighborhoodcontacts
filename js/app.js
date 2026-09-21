@@ -683,6 +683,7 @@
     const candidates = [];
     for (const line of rawLines) {
       if (!line) continue;
+      if (/\b\d{1,2}:\d{2}\b/.test(line)) continue; // skip clock/status-bar lines
       const alnumCount = (line.match(/[a-zA-Z0-9]/g) || []).length;
       if (alnumCount < 2) continue;
       if (alnumCount / line.length < 0.4) continue;
