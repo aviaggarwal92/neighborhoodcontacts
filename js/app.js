@@ -586,10 +586,10 @@
       photoStatus.classList.remove("loading");
 
       const guessedPhone = guessPhoneNumber(ocrText);
-      const guessedName = guessName(ocrText, guessedPhone);
+      const { name: guessedName, businessName: guessedBusiness } = guessNameAndBusiness(ocrText, guessedPhone);
 
       photoForm.querySelector('[name="name"]').value = guessedName;
-      photoForm.querySelector('[name="businessName"]').value = "";
+      photoForm.querySelector('[name="businessName"]').value = guessedBusiness;
       photoForm.querySelector('[name="pricing"]').value = "";
       photoForm.querySelector('[name="phone"]').value = sanitizePhone(guessedPhone || "");
       photoForm.querySelector('[name="notes"]').value = "";
@@ -665,15 +665,6 @@
       }
     });
     return best;
-  }
-
-  function cleanLine(line) {
-    return line.replace(/^[\s\-–—•*·>|]+/, "").replace(/[\s\-–—•*·>|]+$/, "").trim();
-  }
-
-  function looksLikeAddressOrContact(line) {
-    return /\d/.test(line) || /@|www\.|http|\.(com|org|net)\b/i.test(line)
-      || /\b(street|st|ave|avenue|rd|road|blvd|suite|ste|floor|fl)\b/i.test(line);
   }
 
   function cleanLine(line) {
