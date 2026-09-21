@@ -699,9 +699,11 @@
 	  const labelOnly = line.toLowerCase().replace(/[^a-z]/g, "");
       const uiLabels = new Set(["phone", "mobile", "cell", "email", "notes", "home", "work", "main", "fax", "pager", "url", "website", "contactphotoposter", "addtofavorites", "sharecontact", "addtoemergency"]);
       if (uiLabels.has(labelOnly)) continue; // skip contact-app field labels
-      const alnumCount = (line.match(/[a-zA-Z0-9]/g) || []).length;
-      if (alnumCount < 2) continue;
-      if (alnumCount / line.length < 0.4) continue;
+      const junkSymbols = /[©®™@#$%^&*_=~`|\\{}[\]<>]/;
+      if (junkSymbols.test(line)) continue; // reject icon/symbol garbage
+      const letterCount = (line.match(/[a-zA-Z]/g) || []).length;
+      if (letterCount < 2) continue;
+      if (letterCount / line.length < 0.6) continue;
       const lineDigits = line.replace(/\D/g, "");
       if (phoneDigits && lineDigits === phoneDigits) continue;
       if (!/[a-zA-Z]{2,}/.test(line)) continue;
