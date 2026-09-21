@@ -597,11 +597,11 @@
       photoStatus.classList.add("hidden");
       photoStatus.classList.remove("loading");
 
-      const guessedPhone = guessPhoneNumber(ocrText);
-      const { name: guessedName, businessName: guessedBusiness } = guessNameAndBusiness(ocrText, guessedPhone);
+            const guessedPhone = guessPhoneNumber(ocrText);
+      const { name: guessedName } = guessNameAndBusiness(ocrText, guessedPhone);
 
       photoForm.querySelector('[name="name"]').value = guessedName;
-      photoForm.querySelector('[name="businessName"]').value = guessedBusiness;
+      photoForm.querySelector('[name="businessName"]').value = "";
       photoForm.querySelector('[name="pricing"]').value = "";
       photoForm.querySelector('[name="phone"]').value = sanitizePhone(guessedPhone || "");
       photoForm.querySelector('[name="notes"]').value = "";
