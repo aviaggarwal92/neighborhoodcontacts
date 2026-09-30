@@ -78,7 +78,7 @@ export default async function handler(req: Request) {
       )`;
     }
 
-    const [rows, totals] = await Promise.all([
+        const [rows, totals] = await Promise.all([
       db
         .select({
           id: contacts.id,
@@ -93,12 +93,14 @@ export default async function handler(req: Request) {
           categoryId: contacts.categoryId,
           categorySlug: categories.slug,
           categoryName: categories.name,
-          reviewCount: sql<number>`coalesce((select count(*) from ${reviews} r where r.contact_id = ${contacts.id}), 0)::int`,
-          averageRating: sql<number>`coalesce((select avg(r.rating) from ${reviews} r where r.contact_id = ${contacts.id}), 0)::float`,
+          reviewCount: sql<number>`count(${reviews.id})::int`,
+          averageRating: sql<number>`coalesce(avg(${reviews.rating}), 0)::float`,
         })
         .from(contacts)
         .innerJoin(categories, eq(contacts.categoryId, categories.id))
+        .leftJoin(reviews, eq(reviews.contactId, contacts.id))
         .where(filter)
+        .groupBy(contacts.id, categories.id)
         .orderBy(desc(contacts.createdAt), desc(contacts.id))
         .limit(limit)
         .offset(offset),
