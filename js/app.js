@@ -12,7 +12,7 @@
     currentDetailId: null,
     currentDetailContact: null,
     selectedRating: 0,
-    // Store current device/location coordinates (default McKinney, TX 75071)
+    // Store current approximate location coordinates (default McKinney, TX 75071)
     userLocation: { location: "McKinney, TX 75071", latitude: 33.1972, longitude: -96.6398 },
   };
 
@@ -33,23 +33,50 @@
   const CONTACT_PAGE_SIZE = 24;
   let contactsController;
 
-  // Helper to auto-detect browser location or fallback to McKinney, TX 75071
-  function getCurrentUserLocation() {
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) return resolve(state.userLocation);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          state.userLocation = {
-            location: "McKinney, TX 75071",
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          };
-          resolve(state.userLocation);
-        },
-        () => resolve(state.userLocation),
-        { timeout: 5000 }
-      );
-    });
+  // Helper to fetch coarse/approximate location without triggering browser permission prompts
+  async function getApproximateUserLocation() {
+    // Check local storage cache (valid for 24 hours)
+    const cached = localStorage.getItem("user_approx_location");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+          state.userLocation = parsed.data;
+          return state.userLocation;
+        }
+      } catch {
+        localStorage.removeItem("user_approx_location");
+      }
+    }
+
+    try {
+      const res = await fetch("https://ipapi.co/json/", { cache: "no-store" });
+      if (!res.ok) throw new Error("IP location lookup failed");
+      const data = await res.json();
+
+      if (data && data.latitude && data.longitude) {
+        const city = data.city || "Local Area";
+        const stateCode = data.region_code || "TX";
+        const postal = data.postal ? ` ${data.postal}` : "";
+        
+        state.userLocation = {
+          location: `${city}, ${stateCode}${postal}`,
+          latitude: parseFloat(data.latitude),
+          longitude: parseFloat(data.longitude),
+        };
+
+        localStorage.setItem("user_approx_location", JSON.stringify({
+          timestamp: Date.now(),
+          data: state.userLocation,
+        }));
+
+        return state.userLocation;
+      }
+    } catch (err) {
+      console.warn("IP location unavailable, using default region:", err);
+    }
+
+    return state.userLocation;
   }
 
   function syncSheetScrollLock() {
@@ -174,8 +201,8 @@
     listStatus.textContent = append ? "Loading more contacts…" : "Loading contacts…";
     updatePaginationControls();
 
-    // Capture location to send to backend for 25-mile range filtering
-    const loc = await getCurrentUserLocation();
+    // Use approximate location to search within a 25-mile radius
+    const loc = await getApproximateUserLocation();
     const params = new URLSearchParams();
     if (state.activeCategory !== "all") params.set("category", state.activeCategory);
     if (state.search) params.set("search", state.search);
@@ -460,8 +487,8 @@
     const payload = Object.fromEntries(formData.entries());
     payload.phone = sanitizePhone(payload.phone);
 
-    // Auto-detect location & tag coordinates when uploading contacts
-    const loc = await getCurrentUserLocation();
+    // Tag the user's current city/location when uploading contacts
+    const loc = await getApproximateUserLocation();
     payload.location = loc.location;
     payload.latitude = loc.latitude;
     payload.longitude = loc.longitude;
@@ -998,7 +1025,7 @@
 
   // ---------- Init ----------
   (async function init() {
-    await getCurrentUserLocation();
+    await getApproximateUserLocation();
     await Promise.all([loadCategories(), loadContacts()]);
   })();
 })();
