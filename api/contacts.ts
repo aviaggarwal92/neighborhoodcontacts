@@ -90,13 +90,11 @@ export default async function handler(req: Request) {
     }
 
     // Apply PostgreSQL earthdistance 25-mile radius filter
-    if (lat && lon) {
-      filter = sql<boolean>`${filter} and (
-        ${contacts.latitude} is not null 
-        and ${contacts.longitude} is not null 
-        and (point(${contacts.longitude}::float8, ${contacts.latitude}::float8) <@> point(${lon}::float8, ${lat}::float8)) <= ${radius}
-      )`;
-    }
+	distanceMiles: sql<number>`case 
+	  when ${contacts.latitude} is not null and ${contacts.longitude} is not null 
+	  then (point(${contacts.longitude}::float8, ${contacts.latitude}::float8) <@> point(${lon}::float8, ${lat}::float8))::float 
+	  else 0 
+	end`,
 
     const [rows, totals] = await Promise.all([
       db
