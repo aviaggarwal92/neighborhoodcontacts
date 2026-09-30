@@ -20,7 +20,7 @@ async function findDuplicate(name: string) {
     .select()
     .from(categories)
     .where(
-      sql`lower(regexp_replace(trim(${categories.name}), '[[:space:]]+', ' ', 'g')) = lower(${name})`,
+      sql<boolean>`lower(regexp_replace(trim(${categories.name}), '[[:space:]]+', ' ', 'g')) = lower(${name}::text)`,
     )
     .limit(1);
   return existing;
@@ -30,7 +30,7 @@ async function slugExists(slug: string) {
   const [existing] = await db
     .select({ id: categories.id })
     .from(categories)
-    .where(sql`${categories.slug} = ${slug}`)
+    .where(eq(categories.slug, slug))
     .limit(1);
   return Boolean(existing);
 }
@@ -71,7 +71,7 @@ export default async function handler(req: Request) {
       try {
         const [category] = await db
           .insert(categories)
-          .values({ name, slug: availableSlug, icon: "star" })
+          .values({ name, slug: availableSlug, icon: body.icon || "wrench" })
           .returning();
         return Response.json({ category }, { status: 201 });
       } catch (error) {
