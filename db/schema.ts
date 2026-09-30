@@ -29,6 +29,10 @@ export const contacts = pgTable(
     notes: text().default(""),
     addedBy: text("added_by").default(""),
     source: text().default("manual"),
+	// --- ONLY ADD THESE THREE NEW COLUMNS ---
+    location: text("location"),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => [

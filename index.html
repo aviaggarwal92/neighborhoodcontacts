@@ -42,9 +42,6 @@
       <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <input id="searchInput" type="search" placeholder="Search a name, business, or number…" autocomplete="off" />
     </div>
-    <button id="locationFilterBtn" type="button" class="btn-secondary location-filter-btn" title="Filter contacts within 25 miles of your location">
-      📍 Within 25 miles
-    </button>
   </div>
 
   <nav class="chip-row" id="categoryChips" aria-label="Filter by category"></nav>
@@ -110,12 +107,6 @@
           <input type="text" name="businessName" />
         </label>
         <label class="field">
-          <span>Location / City</span>
-          <input type="text" name="location" id="manualLocation" placeholder="Detecting current location…" />
-          <input type="hidden" name="latitude" id="manualLat" />
-          <input type="hidden" name="longitude" id="manualLon" />
-        </label>
-        <label class="field">
           <span>Pricing (optional)</span>
           <textarea name="pricing" rows="3" maxlength="160" placeholder="List service prices, rates, or estimate policies"></textarea>
           <small>Use a new line for each pricing option.</small>
@@ -167,12 +158,6 @@
         <label class="field">
           <span>Business name (optional)</span>
           <input type="text" name="businessName" />
-        </label>
-        <label class="field">
-          <span>Location / City</span>
-          <input type="text" name="location" id="photoLocation" placeholder="Detecting current location…" />
-          <input type="hidden" name="latitude" id="photoLat" />
-          <input type="hidden" name="longitude" id="photoLon" />
         </label>
         <label class="field">
           <span>Pricing (optional)</span>

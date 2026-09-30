@@ -41,32 +41,27 @@ function isUniqueViolation(error: unknown): boolean {
   return "cause" in error && isUniqueViolation(error.cause);
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: Request) {
   if (req.method === "GET") {
-    try {
-      const rows = await db.select().from(categories).orderBy(categories.id);
-      return res.status(200).json({ categories: rows });
-    } catch (error) {
-      console.error("Fetch categories error:", error);
-      return res.status(500).json({ error: "Failed to load categories." });
-    }
+    const rows = await db.select().from(categories).orderBy(categories.id);
+    return Response.json({ categories: rows });
   }
 
   if (req.method === "POST") {
-    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    const body = await req.json().catch(() => ({}));
     const name = normalizeCategoryName(body.name);
     const slug = categorySlug(name);
 
     if (name.length < 2 || name.length > 60 || !slug) {
-      return res.status(400).json({ error: "Enter a category name between 2 and 60 characters." });
+      return Response.json({ error: "Enter a category name between 2 and 60 characters." }, { status: 400 });
     }
 
     const existing = await findDuplicate(name);
     if (existing) {
-      return res.status(409).json({
-        error: `"${existing.name}" already exists.`,
-        existingCategory: existing,
-      });
+      return Response.json(
+        { error: `"${existing.name}" already exists.`, existingCategory: existing },
+        { status: 409 },
+      );
     }
 
     for (let suffix = 1; ; suffix += 1) {
@@ -78,21 +73,24 @@ export default async function handler(req, res) {
           .insert(categories)
           .values({ name, slug: availableSlug, icon: "star" })
           .returning();
-        return res.status(201).json({ category });
+        return Response.json({ category }, { status: 201 });
       } catch (error) {
         if (!isUniqueViolation(error)) throw error;
 
         const duplicate = await findDuplicate(name);
         if (duplicate) {
-          return res.status(409).json({
-            error: `"${duplicate.name}" already exists.`,
-            existingCategory: duplicate,
-          });
+          return Response.json(
+            { error: `"${duplicate.name}" already exists.`, existingCategory: duplicate },
+            { status: 409 },
+          );
         }
       }
     }
   }
 
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).end("Method not allowed");
+  return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, POST" } });
 }
+
+export const config = {
+  runtime: "edge",
+};
