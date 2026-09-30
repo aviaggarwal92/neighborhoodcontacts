@@ -68,17 +68,14 @@ export default async function handler(req: Request) {
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 100) : 24;
     const offset = Number.isFinite(requestedOffset) ? Math.max(Math.trunc(requestedOffset), 0) : 0;
 
-    // Location coordinates (Defaults to McKinney, TX 75071)
     const lat = url.searchParams.get("lat") ? parseFloat(url.searchParams.get("lat")!) : 33.1972;
     const lon = url.searchParams.get("lon") ? parseFloat(url.searchParams.get("lon")!) : -96.6398;
     const radius = url.searchParams.get("radius") ? parseFloat(url.searchParams.get("radius")!) : 25;
 
     let filter = sql<boolean>`true`;
-
     if (categorySlug && categorySlug !== "all") {
       filter = sql<boolean>`${filter} and ${categories.slug} = ${categorySlug}`;
     }
-
     if (search) {
       filter = sql<boolean>`${filter} and (
         position(${search} in lower(${contacts.name})) > 0
@@ -89,12 +86,13 @@ export default async function handler(req: Request) {
       )`;
     }
 
-    // Apply PostgreSQL earthdistance 25-mile radius filter
-	distanceMiles: sql<number>`case 
-	  when ${contacts.latitude} is not null and ${contacts.longitude} is not null 
-	  then (point(${contacts.longitude}::float8, ${contacts.latitude}::float8) <@> point(${lon}::float8, ${lat}::float8))::float 
-	  else 0 
-	end`,
+    if (lat && lon) {
+      filter = sql<boolean>`${filter} and (
+        ${contacts.latitude} is not null 
+        and ${contacts.longitude} is not null 
+        and (point(coalesce(${contacts.longitude}, -96.6398)::float8, coalesce(${contacts.latitude}, 33.1972)::float8) <@> point(${lon}::float8, ${lat}::float8)) <= ${radius}
+      )`;
+    }
 
     const [rows, totals] = await Promise.all([
       db
@@ -116,7 +114,6 @@ export default async function handler(req: Request) {
           categoryName: categories.name,
           reviewCount: sql<number>`count(${reviews.id})::int`,
           averageRating: sql<number>`coalesce(avg(${reviews.rating}), 0)::float`,
-          distanceMiles: sql<number>`(point(${contacts.longitude}::float8, ${contacts.latitude}::float8) <@> point(${lon}::float8, ${lat}::float8))::float`,
         })
         .from(contacts)
         .innerJoin(categories, eq(contacts.categoryId, categories.id))
@@ -146,19 +143,7 @@ export default async function handler(req: Request) {
 
   if (req.method === "POST") {
     const body = await req.json();
-    const { 
-      name, 
-      phone, 
-      categorySlug, 
-      businessName, 
-      pricing, 
-      notes, 
-      addedBy, 
-      source, 
-      location, 
-      latitude: clientLat, 
-      longitude: clientLon 
-    } = body;
+    const { name, phone, categorySlug, businessName, pricing, notes, addedBy, source, location, latitude: clientLat, longitude: clientLon } = body;
 
     const sanitizedPhone = sanitizePhone(phone);
     const sanitizedPricing = String(pricing ?? "").trim();
@@ -193,27 +178,6 @@ export default async function handler(req: Request) {
       );
     }
 
-    let latitude = clientLat ? parseFloat(clientLat) : 33.1972;
-    let longitude = clientLon ? parseFloat(clientLon) : -96.6398;
-    let locationTag = location || "McKinney, TX 75071";
-
-    // Optional forward-geocoding fallback if custom location string provided without coordinates
-    if ((!clientLat || !clientLon) && location) {
-      try {
-        const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`,
-          { headers: { "User-Agent": "HighlandLakesDirectory/1.0" } }
-        );
-        const geoData = await geoRes.json();
-        if (geoData && geoData.length > 0) {
-          latitude = parseFloat(geoData[0].lat);
-          longitude = parseFloat(geoData[0].lon);
-        }
-      } catch (err) {
-        console.error("Geocoding fallback failed:", err);
-      }
-    }
-
     const [inserted] = await db
       .insert(contacts)
       .values({
@@ -226,9 +190,9 @@ export default async function handler(req: Request) {
         notes: notes ?? "",
         addedBy: addedBy ?? "",
         source: source ?? "manual",
-        location: locationTag,
-        latitude,
-        longitude,
+        location: location ?? "McKinney, TX 75071",
+        latitude: clientLat ? parseFloat(clientLat) : 33.1972,
+        longitude: clientLon ? parseFloat(clientLon) : -96.6398,
       })
       .returning();
 

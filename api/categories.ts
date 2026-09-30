@@ -1,6 +1,6 @@
 import { db } from "../db/index.js";
 import { categories } from "../db/schema.js";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 function normalizeCategoryName(raw: unknown) {
   return String(raw ?? "").trim().replace(/\s+/g, " ");

@@ -20,6 +20,7 @@ const SUPPORTED_MEDIA_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "
 type ExtractedContact = {
   name?: unknown;
   businessName?: unknown;
+  pricing?: unknown; // Added to fix TS2339 property error
   phone?: unknown;
   notes?: unknown;
   category?: unknown;
@@ -52,7 +53,7 @@ async function createDirectMessage(payload: Anthropic.MessageCreateParamsNonStre
     throw new Error(`Anthropic API request failed with status ${response.status}: ${errorBody}`);
   }
 
-  return await response.json() as Anthropic.Message;
+  return (await response.json()) as Anthropic.Message;
 }
 
 function stringValue(value: unknown) {
