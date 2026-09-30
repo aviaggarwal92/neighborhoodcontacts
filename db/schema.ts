@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, serial, text, timestamp, integer, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, doublePrecision, uniqueIndex, index } from "drizzle-orm/pg-core";
 
 export const categories = pgTable(
   "categories",
@@ -29,7 +29,6 @@ export const contacts = pgTable(
     notes: text().default(""),
     addedBy: text("added_by").default(""),
     source: text().default("manual"),
-	// --- ONLY ADD THESE THREE NEW COLUMNS ---
     location: text("location"),
     latitude: doublePrecision("latitude"),
     longitude: doublePrecision("longitude"),
@@ -39,7 +38,7 @@ export const contacts = pgTable(
     uniqueIndex("contacts_normalized_phone_idx").on(table.normalizedPhone),
     index("contacts_created_at_id_idx").on(table.createdAt, table.id),
     index("contacts_category_created_at_id_idx").on(table.categoryId, table.createdAt, table.id),
-  ],
+  ]
 );
 
 export const reviews = pgTable(
