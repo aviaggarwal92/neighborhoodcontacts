@@ -133,16 +133,10 @@
 
   function formatWhatsAppShareUrl(contact) {
     const lines = [
-      "Highland Lakes contact",
+      "Your Neighborhood contact",
       contact.name,
-      contact.businessName || "",
       contact.phone,
-      contact.location ? `Location: ${contact.location}` : "",
-      contact.categoryName ? `Category: ${contact.categoryName}` : "",
-      contact.pricing ? `Pricing: ${contact.pricing}` : "",
-      contact.notes ? `Notes: ${contact.notes}` : "",
-      "Shared from Highland Lakes Directory",
-      window.location.origin,
+	  window.location.origin,
     ].filter(Boolean);
 
     return `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
@@ -150,23 +144,20 @@
 
   function formatCategoryWhatsAppShareUrl(category, contacts) {
     const contactLines = contacts.flatMap((contact, index) => [
-      `${index + 1}. ${contact.name}${contact.businessName ? ` — ${contact.businessName}` : ""}`,
+      `${index + 1}. ${contact.name}`,
       `Phone: ${contact.phone}`,
-      contact.pricing ? `Pricing: ${contact.pricing}` : "",
-      contact.notes ? `Notes: ${contact.notes}` : "",
       "",
     ]);
     const lines = [
-      `Highland Lakes ${category.name}`,
-      `${contacts.length} contact${contacts.length === 1 ? "" : "s"}`,
+      `Neighborhood ${category.name}`,
       "",
       ...contactLines,
-      "Shared from Highland Lakes Directory",
       window.location.origin,
     ];
 
     return `https://wa.me/?text=${encodeURIComponent(lines.join("\n").trim())}`;
   }
+ 
 
   function whatsAppIcon() {
     return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 11.7a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.4-4.4A8.4 8.4 0 1 1 20.5 11.7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.2 7.8c.2-.5.5-.5.8-.5h.5c.2 0 .4.1.5.4l.8 1.9c.1.3 0 .5-.2.7l-.6.7c-.2.2-.1.4 0 .6.7 1.3 1.7 2.3 3 3 .2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1.1 2.1-.6.4-1.4.6-2.3.3-1.2-.3-2.8-1-4.4-2.4-1.8-1.6-3-3.6-3.3-4.8-.3-1.1 0-1.8.3-2.2.4-.4.8-.5 1.1-.5" fill="currentColor"/></svg>`;
