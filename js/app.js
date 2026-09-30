@@ -4,16 +4,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const locationFilterBtn = document.getElementById("locationFilterBtn");
   const fabAdd = document.getElementById("fabAdd");
+  const addSheet = document.getElementById("addSheet");
+  const closeAddSheet = document.getElementById("closeAddSheet");
   const manualForm = document.getElementById("manualForm");
   const photoForm = document.getElementById("photoForm");
 
-  // Automatically fetch current location when opening the "Add Contact" sheet
-  if (fabAdd) {
+  // Open "Add Contact" modal when clicking the plus button (+)
+  if (fabAdd && addSheet) {
     fabAdd.addEventListener("click", () => {
+      addSheet.classList.remove("hidden");
       autoFetchUserLocation();
     });
   }
 
+  // Close "Add Contact" modal
+  if (closeAddSheet && addSheet) {
+    closeAddSheet.addEventListener("click", () => {
+      addSheet.classList.add("hidden");
+    });
+  }
+
+  // Close modals when clicking overlay background or home buttons
+  document.querySelectorAll("[data-go-home]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".sheet-overlay").forEach((sheet) => sheet.classList.add("hidden"));
+    });
+  });
+
+  // Tab switching between Manual and Photo entry
+  const tabBtns = document.querySelectorAll("[data-add-tab]");
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tabTarget = btn.getAttribute("data-add-tab");
+      document.getElementById("tabManual").classList.toggle("active", tabTarget === "manual");
+      document.getElementById("tabPhoto").classList.toggle("active", tabTarget === "photo");
+    });
+  });
+
+  // Automatically fetch GPS location and reverse geocode
   function autoFetchUserLocation() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -21,13 +51,16 @@ document.addEventListener("DOMContentLoaded", () => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
 
-          // Set hidden coordinate fields
-          document.getElementById("manualLat").value = lat;
-          document.getElementById("manualLon").value = lon;
-          document.getElementById("photoLat").value = lat;
-          document.getElementById("photoLon").value = lon;
+          const manualLat = document.getElementById("manualLat");
+          const manualLon = document.getElementById("manualLon");
+          const photoLat = document.getElementById("photoLat");
+          const photoLon = document.getElementById("photoLon");
 
-          // Reverse geocode lat/lon into readable address/city
+          if (manualLat) manualLat.value = lat;
+          if (manualLon) manualLon.value = lon;
+          if (photoLat) photoLat.value = lat;
+          if (photoLon) photoLon.value = lon;
+
           try {
             const res = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
@@ -37,18 +70,16 @@ document.addEventListener("DOMContentLoaded", () => {
             const state = data.address?.state || "";
             const readableLoc = city && state ? `${city}, ${state}` : data.display_name?.split(",")[0] || "Current Location";
 
-            document.getElementById("manualLocation").value = readableLoc;
-            document.getElementById("photoLocation").value = readableLoc;
+            const manualLoc = document.getElementById("manualLocation");
+            const photoLoc = document.getElementById("photoLocation");
+            if (manualLoc) manualLoc.value = readableLoc;
+            if (photoLoc) photoLoc.value = readableLoc;
           } catch (err) {
             console.error("Reverse geocoding error:", err);
-            document.getElementById("manualLocation").placeholder = "e.g., Plano, TX";
-            document.getElementById("photoLocation").placeholder = "e.g., Plano, TX";
           }
         },
         (err) => {
           console.warn("Location permission denied or unavailable:", err);
-          document.getElementById("manualLocation").placeholder = "e.g., Plano, TX";
-          document.getElementById("photoLocation").placeholder = "e.g., Plano, TX";
         }
       );
     }
@@ -89,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Fetch contacts from Vercel API endpoint
+  // Fetch contacts from API
   async function fetchContacts() {
     let url = "/api/contacts";
     if (is25MileActive && activeUserLocation) {
@@ -181,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (res.ok) {
-        document.getElementById("addSheet").classList.add("hidden");
+        if (addSheet) addSheet.classList.add("hidden");
         fetchContacts();
       }
     } catch (err) {
