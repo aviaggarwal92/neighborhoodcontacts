@@ -68,7 +68,7 @@ export default async function handler(req: Request) {
 
     let filter = sql<boolean>`true`;
     if (categorySlug && categorySlug !== "all") {
-      filter = sql<boolean>`${filter} and ${categories.slug} =${categorySlug}`;
+      filter = sql<boolean>`${filter} and ${categories.slug} = ${categorySlug}`;
     }
     if (search) {
       filter = sql<boolean>`${filter} and (
@@ -76,53 +76,58 @@ export default async function handler(req: Request) {
         or position(${search} in lower(coalesce(${contacts.businessName}, ''))) > 0
         or position(${search} in lower(coalesce(${contacts.pricing}, ''))) > 0
         or position(${search} in lower(coalesce(${contacts.notes}, ''))) > 0
-        or position(${search} in${contacts.phone}) > 0
+        or position(${search} in ${contacts.phone}) > 0
       )`;
     }
 
-    const [rows, totals] = await Promise.all([
-      db
-        .select({
-          id: contacts.id,
-          name: contacts.name,
-          phone: contacts.phone,
-          businessName: contacts.businessName,
-          pricing: contacts.pricing,
-          notes: contacts.notes,
-          addedBy: contacts.addedBy,
-          source: contacts.source,
-          location: contacts.location,
-          createdAt: contacts.createdAt,
-          categoryId: contacts.categoryId,
-          categorySlug: categories.slug,
-          categoryName: categories.name,
-          reviewCount: sql<number>`count(${reviews.id})::int`,
-          averageRating: sql<number>`coalesce(avg(${reviews.rating}), 0)::float`,
-        })
-        .from(contacts)
-        .innerJoin(categories, eq(contacts.categoryId, categories.id))
-        .leftJoin(reviews, eq(reviews.contactId, contacts.id))
-        .where(filter)
-        .groupBy(contacts.id, categories.id)
-        .orderBy(desc(contacts.createdAt), desc(contacts.id))
-        .limit(limit)
-        .offset(offset),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(contacts)
-        .innerJoin(categories, eq(categories.categoryId, categories.id))
-        .where(filter),
-    ]);
+    try {
+      const [rows, totals] = await Promise.all([
+        db
+          .select({
+            id: contacts.id,
+            name: contacts.name,
+            phone: contacts.phone,
+            businessName: contacts.businessName,
+            pricing: contacts.pricing,
+            notes: contacts.notes,
+            addedBy: contacts.addedBy,
+            source: contacts.source,
+            location: contacts.location,
+            createdAt: contacts.createdAt,
+            categoryId: contacts.categoryId,
+            categorySlug: categories.slug,
+            categoryName: categories.name,
+            reviewCount: sql<number>`count(${reviews.id})::int`,
+            averageRating: sql<number>`coalesce(avg(${reviews.rating}), 0)::float`,
+          })
+          .from(contacts)
+          .innerJoin(categories, eq(contacts.categoryId, categories.id))
+          .leftJoin(reviews, eq(reviews.contactId, contacts.id))
+          .where(filter)
+          .groupBy(contacts.id, categories.id)
+          .orderBy(desc(contacts.createdAt), desc(contacts.id))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(contacts)
+          .innerJoin(categories, eq(contacts.categoryId, categories.id)) // ✅ FIXED: eq(contacts.categoryId, categories.id)
+          .where(filter),
+      ]);
 
-    const total = totals[0]?.count ?? 0;
+      const total = totals[0]?.count ?? 0;
 
-    return Response.json({
-      contacts: rows,
-      total,
-      limit,
-      offset,
-      hasMore: offset + rows.length < total,
-    });
+      return Response.json({
+        contacts: rows,
+        total,
+        limit,
+        offset,
+        hasMore: offset + rows.length < total,
+      });
+    } catch (err) {
+      console.error("GET /api/contacts Error:", err);
+      return Response.json({ error: "Failed to fetch contacts.", details: String(err) }, { status: 500 });
+    }
   }
 
   if (req.method === "POST") {
