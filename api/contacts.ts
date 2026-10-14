@@ -29,8 +29,6 @@ async function getContactWithStats(contactId: number) {
       addedBy: contacts.addedBy,
       source: contacts.source,
       location: contacts.location,
-      latitude: contacts.latitude,
-      longitude: contacts.longitude,
       createdAt: contacts.createdAt,
       categoryId: contacts.categoryId,
       categorySlug: categories.slug,
@@ -68,13 +66,9 @@ export default async function handler(req: Request) {
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 100) : 24;
     const offset = Number.isFinite(requestedOffset) ? Math.max(Math.trunc(requestedOffset), 0) : 0;
 
-    const lat = url.searchParams.get("lat") ? parseFloat(url.searchParams.get("lat")!) : 33.1972;
-    const lon = url.searchParams.get("lon") ? parseFloat(url.searchParams.get("lon")!) : -96.6398;
-    const radius = url.searchParams.get("radius") ? parseFloat(url.searchParams.get("radius")!) : 25;
-
     let filter = sql<boolean>`true`;
     if (categorySlug && categorySlug !== "all") {
-      filter = sql<boolean>`${filter} and ${categories.slug} = ${categorySlug}`;
+      filter = sql<boolean>`${filter} and ${categories.slug} =${categorySlug}`;
     }
     if (search) {
       filter = sql<boolean>`${filter} and (
@@ -82,15 +76,7 @@ export default async function handler(req: Request) {
         or position(${search} in lower(coalesce(${contacts.businessName}, ''))) > 0
         or position(${search} in lower(coalesce(${contacts.pricing}, ''))) > 0
         or position(${search} in lower(coalesce(${contacts.notes}, ''))) > 0
-        or position(${search} in ${contacts.phone}) > 0
-      )`;
-    }
-
-    if (lat && lon) {
-      filter = sql<boolean>`${filter} and (
-        ${contacts.latitude} is not null 
-        and ${contacts.longitude} is not null 
-        and (point(coalesce(${contacts.longitude}, -96.6398)::float8, coalesce(${contacts.latitude}, 33.1972)::float8) <@> point(${lon}::float8, ${lat}::float8)) <= ${radius}
+        or position(${search} in${contacts.phone}) > 0
       )`;
     }
 
@@ -106,8 +92,6 @@ export default async function handler(req: Request) {
           addedBy: contacts.addedBy,
           source: contacts.source,
           location: contacts.location,
-          latitude: contacts.latitude,
-          longitude: contacts.longitude,
           createdAt: contacts.createdAt,
           categoryId: contacts.categoryId,
           categorySlug: categories.slug,
@@ -126,7 +110,7 @@ export default async function handler(req: Request) {
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(contacts)
-        .innerJoin(categories, eq(contacts.categoryId, categories.id))
+        .innerJoin(categories, eq(categories.categoryId, categories.id))
         .where(filter),
     ]);
 
@@ -143,7 +127,7 @@ export default async function handler(req: Request) {
 
   if (req.method === "POST") {
     const body = await req.json();
-    const { name, phone, categorySlug, businessName, pricing, notes, addedBy, source, location, latitude: clientLat, longitude: clientLon } = body;
+    const { name, phone, categorySlug, businessName, pricing, notes, addedBy, source, location } = body;
 
     const sanitizedPhone = sanitizePhone(phone);
     const sanitizedPricing = String(pricing ?? "").trim();
@@ -190,9 +174,7 @@ export default async function handler(req: Request) {
         notes: notes ?? "",
         addedBy: addedBy ?? "",
         source: source ?? "manual",
-        location: location ?? "McKinney, TX 75071",
-        latitude: clientLat ? parseFloat(clientLat) : 33.1972,
-        longitude: clientLon ? parseFloat(clientLon) : -96.6398,
+        location: location ?? "",
       })
       .returning();
 

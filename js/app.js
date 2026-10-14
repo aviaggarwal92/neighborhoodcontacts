@@ -12,8 +12,6 @@
     currentDetailId: null,
     currentDetailContact: null,
     selectedRating: 0,
-    // Store current approximate location coordinates (default McKinney, TX 75071)
-    userLocation: { location: "McKinney, TX 75071", latitude: 33.1972, longitude: -96.6398 },
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -32,52 +30,6 @@
   const toast = $("#toast");
   const CONTACT_PAGE_SIZE = 24;
   let contactsController;
-
-  // Helper to fetch coarse/approximate location without triggering browser permission prompts
-  async function getApproximateUserLocation() {
-    // Check local storage cache (valid for 24 hours)
-    const cached = localStorage.getItem("user_approx_location");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-          state.userLocation = parsed.data;
-          return state.userLocation;
-        }
-      } catch {
-        localStorage.removeItem("user_approx_location");
-      }
-    }
-
-    try {
-      const res = await fetch("https://ipapi.co/json/", { cache: "no-store" });
-      if (!res.ok) throw new Error("IP location lookup failed");
-      const data = await res.json();
-
-      if (data && data.latitude && data.longitude) {
-        const city = data.city || "Local Area";
-        const stateCode = data.region_code || "TX";
-        const postal = data.postal ? ` ${data.postal}` : "";
-        
-        state.userLocation = {
-          location: `${city}, ${stateCode}${postal}`,
-          latitude: parseFloat(data.latitude),
-          longitude: parseFloat(data.longitude),
-        };
-
-        localStorage.setItem("user_approx_location", JSON.stringify({
-          timestamp: Date.now(),
-          data: state.userLocation,
-        }));
-
-        return state.userLocation;
-      }
-    } catch (err) {
-      console.warn("IP location unavailable, using default region:", err);
-    }
-
-    return state.userLocation;
-  }
 
   function syncSheetScrollLock() {
     const hasOpenSheet = $$(".sheet-overlay").some((sheet) => !sheet.classList.contains("hidden"));
@@ -133,10 +85,10 @@
 
   function formatWhatsAppShareUrl(contact) {
     const lines = [
-      "Your Neighborhood contact",
+      "Highland Lakes contact",
       contact.name,
       contact.phone,
-	  window.location.origin,
+      window.location.origin,
     ].filter(Boolean);
 
     return `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`;
@@ -144,12 +96,12 @@
 
   function formatCategoryWhatsAppShareUrl(category, contacts) {
     const contactLines = contacts.flatMap((contact, index) => [
-      `${index + 1}. ${contact.name}`,
+      `${index + 1}.${contact.name}`,
       `Phone: ${contact.phone}`,
       "",
     ]);
     const lines = [
-      `Neighborhood ${category.name}`,
+      `Highland Lakes ${category.name}`,
       "",
       ...contactLines,
       window.location.origin,
@@ -157,7 +109,6 @@
 
     return `https://wa.me/?text=${encodeURIComponent(lines.join("\n").trim())}`;
   }
- 
 
   function whatsAppIcon() {
     return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 11.7a8.4 8.4 0 0 1-12.4 7.4L3.5 20.5l1.4-4.4A8.4 8.4 0 1 1 20.5 11.7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.2 7.8c.2-.5.5-.5.8-.5h.5c.2 0 .4.1.5.4l.8 1.9c.1.3 0 .5-.2.7l-.6.7c-.2.2-.1.4 0 .6.7 1.3 1.7 2.3 3 3 .2.1.4.2.6 0l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1.1 2.1-.6.4-1.4.6-2.3.3-1.2-.3-2.8-1-4.4-2.4-1.8-1.6-3-3.6-3.3-4.8-.3-1.1 0-1.8.3-2.2.4-.4.8-.5 1.1-.5" fill="currentColor"/></svg>`;
@@ -192,15 +143,11 @@
     listStatus.textContent = append ? "Loading more contacts…" : "Loading contacts…";
     updatePaginationControls();
 
-    // Use approximate location to search within a 25-mile radius
-    const loc = await getApproximateUserLocation();
     const params = new URLSearchParams();
     if (state.activeCategory !== "all") params.set("category", state.activeCategory);
     if (state.search) params.set("search", state.search);
     params.set("limit", String(CONTACT_PAGE_SIZE));
     params.set("offset", String(offset));
-    params.set("lat", String(loc.latitude));
-    params.set("lon", String(loc.longitude));
 
     try {
       const res = await fetch(`/api/contacts?${params.toString()}`, {
@@ -277,7 +224,7 @@
   }
 
   function renderLoadingSkeletons() {
-    resultCount.textContent = "Loading contacts within 25 miles";
+    resultCount.textContent = "Loading contacts";
     emptyState.classList.add("hidden");
     contactList.innerHTML = Array.from({ length: 6 }, () => `
       <li class="contact-card contact-card-skeleton" aria-hidden="true">
@@ -293,7 +240,7 @@
     const loadedCount = state.contacts.length;
     resultCount.textContent = state.hasMoreContacts
       ? `${loadedCount} of${state.totalContacts} contacts`
-      : `${state.totalContacts} contact${state.totalContacts === 1 ? "" : "s"} within 25 miles`;
+      : `${state.totalContacts} contact${state.totalContacts === 1 ? "" : "s"}`;
     emptyState.classList.toggle("hidden", state.totalContacts > 0);
     renderCategoryShare();
 
@@ -305,7 +252,7 @@
         <div class="card-top">
           <div>
             <p class="card-name">${escapeHtml(c.name)}</p>${c.businessName ? `<p class="card-business">${escapeHtml(c.businessName)}</p>` : ""}
-            <p class="card-location" style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">📍 ${escapeHtml(c.location || "McKinney, TX 75071")}</p>
+            ${c.location ? `<p class="card-location" style="font-size: 0.8rem; opacity: 0.85; margin-top: 2px;">📍 ${escapeHtml(c.location)}</p>` : ""}
           </div>
           <span class="category-pill">${escapeHtml(c.categoryName)}</span>
         </div>
@@ -478,12 +425,6 @@
     const payload = Object.fromEntries(formData.entries());
     payload.phone = sanitizePhone(payload.phone);
 
-    // Tag the user's current city/location when uploading contacts
-    const loc = await getApproximateUserLocation();
-    payload.location = loc.location;
-    payload.latitude = loc.latitude;
-    payload.longitude = loc.longitude;
-
     const res = await fetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -506,7 +447,7 @@
     const ok = await submitContact(fd, $("#manualError"), $("#manualDuplicateCard"));
     if (ok) {
       closeSheet(addSheet);
-      showToast("Contact saved with location tag");
+      showToast("Contact saved");
       loadContacts();
     }
   });
@@ -518,7 +459,7 @@
     const ok = await submitContact(fd, $("#photoError"), $("#photoDuplicateCard"));
     if (ok) {
       closeSheet(addSheet);
-      showToast("Contact saved with location tag");
+      showToast("Contact saved");
       loadContacts();
     }
   });
@@ -859,7 +800,7 @@
         </span>
       </div>
       ${contact.businessName ? `<p class="detail-business">${escapeHtml(contact.businessName)}</p>` : ""}
-      <p style="margin: 6px 0; font-size: 0.9rem; color: #555;">📍 ${escapeHtml(contact.location || "McKinney, TX 75071")}</p>
+      ${contact.location ? `<p style="margin: 6px 0; font-size: 0.9rem; color: #555;">📍 ${escapeHtml(contact.location)}</p>` : ""}
       <div class="detail-pricing">
         <span>Pricing</span>
         <div class="detail-pricing-value${contact.pricing ? "" : " detail-pricing-empty"}">${
@@ -973,7 +914,7 @@
   const starInput = $("#starInput");
   function resetReviewForm() {
     $("#reviewForm").reset();
-    $("#reviewError").classList.add("hidden");     state.selectedRating = 0;     renderStars(0);   }   function renderStars(value) {     $$("#starInput button").forEach((btn) => {
+    $("#reviewError").classList.add("hidden"); state.selectedRating = 0; renderStars(0); } function renderStars(value) { $$("#starInput button").forEach((btn) => {
       btn.classList.toggle("filled", Number(btn.dataset.star) <= value);
     });
     $('#reviewForm [name="rating"]').value = value || "";
@@ -1016,7 +957,6 @@
 
   // ---------- Init ----------
   (async function init() {
-    await getApproximateUserLocation();
     await Promise.all([loadCategories(), loadContacts()]);
   })();
 })();
